@@ -2,15 +2,14 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Message = require('../models/Message');
+const Notification = require('../models/Notification'); // 👈 add this
 
-
-
-
-
-// Get all messages (admin use)
+// -------------------- GET ALL MESSAGES (Admin use) --------------------
 router.get("/", async (req, res) => {
   try {
-    const messages = await Message.find().sort({ createdAt: -1 }); // latest first
+    const messages = await Message.find()
+      .sort({ createdAt: -1 })
+      .populate("sender receiver", "name email"); // optional
     res.json(messages);
   } catch (err) {
     console.error("Error fetching all messages:", err);
@@ -18,22 +17,76 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  const { senderId, receiverId, job, content } = req.body;
 
-  const message = await Message.create({
-    sender: senderId,
-    receiver: receiverId,
-    job,
-    content
-  });
+// -----------------------  Get chat list for logged-in user -----------------------------
+router.get("/my", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-  res.json(message);
+    // Find all messages where user is sender or receiver
+    const messages = await Message.find({
+      $or: [{ sender: userId }, { receiver: userId }]
+    })
+      .sort({ createdAt: -1 })
+      .populate("sender receiver", "name avatar");
+
+    // Group by conversation partner
+    const chatMap = new Map();
+
+    messages.forEach((msg) => {
+      const otherUser =
+        msg.sender._id.toString() === userId
+          ? msg.receiver
+          : msg.sender;
+
+      if (!chatMap.has(otherUser._id.toString())) {
+        chatMap.set(otherUser._id.toString(), {
+          _id: msg._id,
+          name: otherUser.name,
+          avatar: otherUser.avatar || "https://placehold.co/100x100",
+          content: msg.content,
+          createdAt: msg.createdAt,
+          unreadCount: 0 // you can enhance later
+        });
+      }
+    });
+
+    res.json([...chatMap.values()]);
+  } catch (err) {
+    console.error("Error fetching chat list:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 
+// -------------------- SEND MESSAGE --------------------
+router.post("/", auth, async (req, res) => {
+  try {
+    const { receiverId, job, content } = req.body;
+
+    const message = await Message.create({
+      sender: req.user.id,   // from logged-in user
+      receiver: receiverId,
+      job,
+      content
+    });
+
+    // ✅ Create a notification for the receiver
+    await Notification.create({
+      user: receiverId,
+      sender: req.user.id,
+      type: "message",
+      message: `New message from ${req.user.id}`
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // -------------------- GET CONVERSATION --------------------
-// Between logged-in user (myUserId) and another user (userId)
 router.get("/:artisanId/:userId", auth, async (req, res) => {
   try {
     const { artisanId, userId } = req.params;
@@ -43,7 +96,9 @@ router.get("/:artisanId/:userId", auth, async (req, res) => {
         { sender: artisanId, receiver: userId },
         { sender: userId, receiver: artisanId }
       ]
-    }).sort({ createdAt: 1 }); // oldest first
+    })
+      .sort({ createdAt: 1 })
+      .populate("sender receiver", "name email"); // optional
 
     res.json(messages);
   } catch (error) {
@@ -52,13 +107,11 @@ router.get("/:artisanId/:userId", auth, async (req, res) => {
   }
 });
 
-
-// DELETE message by ID
-router.delete("delete/:id", async (req, res) => {
+// -------------------- DELETE MESSAGE --------------------
+router.delete("/delete/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the message
     const message = await Message.findById(id);
 
     if (!message) {
@@ -71,13 +124,11 @@ router.delete("delete/:id", async (req, res) => {
     }
 
     await message.deleteOne();
-
     res.json({ msg: "Message deleted successfully" });
   } catch (err) {
     console.error("Error deleting message:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
-
 
 module.exports = router;

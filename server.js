@@ -11,6 +11,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const artisanRoutes = require('./routes/artisanRoutes');
 const applicationRoutes  = require('./routes/applicationRoutes');
 const messageRoutes  = require('./routes/messageRoutes');
+const notificationRoutes  = require('./routes/notificationRoutes');
+const ratingRoutes  = require('./routes/ratingRoutes');
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -21,6 +23,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/artisan', artisanRoutes);
 app.use('/api/application', applicationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 const PORT = process.env.PORT || 5000; // 🔑 Fallback for local dev
 
