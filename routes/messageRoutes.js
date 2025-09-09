@@ -86,16 +86,30 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-
-// -------------------- GET CONVERSATION Using a chatid --------------------
+// -------------------- GET ALL MESSAGES IN ONE CONVERSATION --------------------
 router.get("/chat/:chatId", auth, async (req, res) => {
-  const { chatId } = req.params;
-
   try {
-    const messages = await Message.find({ _id: chatId }).sort({ createdAt: 1 });
+    const { chatId } = req.params;
+
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.id, receiver: chatId },
+        { sender: chatId, receiver: req.user.id },
+      ],
+    })
+      .populate("sender", "name avatar")
+      .populate("receiver", "name avatar")
+      .sort({ createdAt: 1 });
+
+    // Mark messages as read for the logged-in user
+    await Message.updateMany(
+      { sender: chatId, receiver: req.user.id, read: false },
+      { read: true }
+    );
+
     res.json(messages);
   } catch (err) {
-    console.error("Error fetching chat by ID:", err);
+    console.error("Error fetching conversation:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
