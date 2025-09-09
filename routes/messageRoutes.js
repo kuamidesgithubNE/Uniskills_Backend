@@ -61,9 +61,6 @@ router.get("/my", auth, async (req, res) => {
 
 
 // -------------------- SEND MESSAGE --------------------
-const User = require("../models/User");
-const Message = require("../models/Message");
-const Notification = require("../models/Notification");
 
 router.post("/", auth, async (req, res) => {
   try {
