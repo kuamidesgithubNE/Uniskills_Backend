@@ -42,6 +42,7 @@ router.get("/my", auth, async (req, res) => {
       if (!chatMap.has(otherUser._id.toString())) {
         chatMap.set(otherUser._id.toString(), {
           _id: msg._id,
+          userId: otherUser._id,
           name: otherUser.name,
           avatar: otherUser.avatar || "https://placehold.co/100x100",
           content: msg.content,
