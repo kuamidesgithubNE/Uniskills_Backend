@@ -65,6 +65,10 @@ router.post("/", auth, async (req, res) => {
   try {
     const { receiverId, job, content } = req.body;
 
+    if (!req.user.id || !receiverId || !content) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
     const message = await Message.create({
       sender: req.user.id,   // from logged-in user
       receiver: receiverId,
@@ -81,6 +85,7 @@ router.post("/", auth, async (req, res) => {
     });
 
     res.json(message);
+    console.log("Message sent:", message);
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ error: "Server error" });
