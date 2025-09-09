@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
   try {
     const messages = await Message.find()
       .sort({ createdAt: -1 })
-      .populate("sender receiver", "name email"); // optional
+      .populate("sender receiver", "name phone avatar email"); // optional
     res.json(messages);
   } catch (err) {
     console.error("Error fetching all messages:", err);
@@ -28,16 +28,14 @@ router.get("/my", auth, async (req, res) => {
       $or: [{ sender: userId }, { receiver: userId }]
     })
       .sort({ createdAt: -1 })
-      .populate("sender receiver", "name avatar");
+      .populate("sender receiver", "name avatar phone"); // ✅ include phone
 
     // Group by conversation partner
     const chatMap = new Map();
 
     messages.forEach((msg) => {
       const otherUser =
-        msg.sender._id.toString() === userId
-          ? msg.receiver
-          : msg.sender;
+        msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
 
       if (!chatMap.has(otherUser._id.toString())) {
         chatMap.set(otherUser._id.toString(), {
@@ -45,9 +43,10 @@ router.get("/my", auth, async (req, res) => {
           userId: otherUser._id,
           name: otherUser.name,
           avatar: otherUser.avatar || "https://placehold.co/100x100",
+          phone: otherUser.phone || "",   // ✅ add phone number here
           content: msg.content,
           createdAt: msg.createdAt,
-          unreadCount: 0 // you can enhance later
+          unreadCount: 0 // enhance later if needed
         });
       }
     });
@@ -58,6 +57,7 @@ router.get("/my", auth, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 // -------------------- SEND MESSAGE --------------------
@@ -101,7 +101,7 @@ router.get("/:artisanId/:userId", auth, async (req, res) => {
       ]
     })
       .sort({ createdAt: 1 })
-      .populate("sender receiver", "name email"); // optional
+      .populate("sender receiver", "name phone email"); // optional
 
     res.json(messages);
   } catch (error) {
