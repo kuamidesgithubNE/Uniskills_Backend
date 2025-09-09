@@ -43,10 +43,10 @@ router.get("/my", auth, async (req, res) => {
           userId: otherUser._id,
           name: otherUser.name,
           avatar: otherUser.avatar || "https://placehold.co/100x100",
-          phone: otherUser.phone || "",   // ✅ add phone number here
+          phone: otherUser.phone || "",   
           content: msg.content,
           createdAt: msg.createdAt,
-          unreadCount: 0 // enhance later if needed
+          unreadCount: 0 
         });
       }
     });
@@ -61,36 +61,44 @@ router.get("/my", auth, async (req, res) => {
 
 
 // -------------------- SEND MESSAGE --------------------
+const User = require("../models/User");
+const Message = require("../models/Message");
+const Notification = require("../models/Notification");
+
 router.post("/", auth, async (req, res) => {
   try {
-    const { receiverId, job, content } = req.body;
+    const { receiverId, content } = req.body;
 
-    if (!req.user.id || !receiverId || !content) {
-      return res.status(400).json({ error: "All fields are required" });
+    if (!receiverId || !content) {
+      return res.status(400).json({ error: "Receiver and content required" });
     }
 
+    // Save the message
     const message = await Message.create({
-      sender: req.user.id,   // from logged-in user
+      sender: req.user.id,  // logged-in user from auth
       receiver: receiverId,
-      job,
-      content
+      content,
     });
 
-    // ✅ Create a notification for the receiver
+    // Fetch sender details for notification text
+    const sender = await User.findById(req.user.id).select("name");
+
+    // Create notification for receiver
     await Notification.create({
-      user: receiverId,
-      sender: req.user.id,
+      user: receiverId,              // recipient
+      sender: req.user.id,           // sender (logged-in user)
       type: "message",
-      message: `New message from ${user.name || 'a user'}`
+      message: `New message from ${sender?.name || "a user"}`,
     });
 
     res.json(message);
     console.log("Message sent:", message);
-  } catch (error) {
-    console.error("Error sending message:", error);
+  } catch (err) {
+    console.error("Error sending message:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 
