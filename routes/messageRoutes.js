@@ -86,7 +86,22 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// -------------------- GET CONVERSATION --------------------
+
+// -------------------- GET CONVERSATION Using a chatid --------------------
+router.get("/chat/:chatId", auth, async (req, res) => {
+  const { chatId } = req.params;
+
+  try {
+    const messages = await Message.find({ _id: chatId }).sort({ createdAt: 1 });
+    res.json(messages);
+  } catch (err) {
+    console.error("Error fetching chat by ID:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// -------------------- GET CONVERSATION between two users  --------------------
 router.get("/:artisanId/:userId", auth, async (req, res) => {
   try {
     const { artisanId, userId } = req.params;
