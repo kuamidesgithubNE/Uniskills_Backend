@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
   sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // optional (who triggered)
   type: {
     type: String,
-    enum: ["message", "job", "rating", "system"], // flexible for future
+    enum: ["message", "job", "rating", "application", "system"], // flexible for future
     required: true,
   },
   message: { type: String, required: true }, // e.g. "You have a new message"

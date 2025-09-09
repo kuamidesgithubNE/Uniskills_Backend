@@ -77,7 +77,7 @@ router.post("/", auth, async (req, res) => {
       user: receiverId,
       sender: req.user.id,
       type: "message",
-      message: `New message from ${req.user.id}`
+      message: `New message from ${user.name || 'a user'}`
     });
 
     res.json(message);
@@ -87,19 +87,6 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-
-// -------------------- GET CONVERSATION Using a chatid --------------------
-router.get("/chat/:chatId", auth, async (req, res) => {
-  const { chatId } = req.params;
-
-  try {
-    const messages = await Message.find({ _id: chatId }).sort({ createdAt: 1 });
-    res.json(messages);
-  } catch (err) {
-    console.error("Error fetching chat by ID:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
 
 // -------------------- GET CONVERSATION between two users  --------------------

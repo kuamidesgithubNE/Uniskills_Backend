@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
+const Notification = require('../models/Notification');
 const Job = require('../models/JobModel');
 const auth = require('../middleware/auth');
 
@@ -30,6 +31,14 @@ router.post("/:jobId/apply", auth, async (req, res) => {
       artisan: artisanId,
       customer: job.postedBy.customer,  // 👈 Save customer ID
       message: req.body.message || ""
+    });
+
+// ✅ Create a notification for the receiver
+    await Notification.create({
+      user: job.postedBy.customer,
+      sender: artisanId,
+      type: "application",
+      message: `New application from ${user.name || 'an artisan'} for your job "${job.title}"`
     });
 
     res.status(201).json(application);

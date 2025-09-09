@@ -3,7 +3,7 @@ const router = express.Router();
 const Job = require('../models/JobModel');
 const auth = require('../middleware/auth');
 const Application = require('../models/Application');
-
+const Notification = require('../models/Notification'); 
 
 
 //View Jobs 
@@ -136,6 +136,14 @@ router.post('/request', async (req, res) => {
     });
 
     await job.save();
+
+    // ✅ Create a notification for the receiver
+        await Notification.create({
+          user: receiverId,
+          sender: req.user.id,
+          type: "job",
+          message: `New job posted by ${user.name || 'a customer'}`
+        });
     res.status(201).json(job);
   } catch (error) {
     res.status(400).json({ error: error.message });
