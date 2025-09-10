@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Message = require('../models/Message');
+const User = require('../models/UserModel');
 const Notification = require('../models/Notification'); // 👈 add this
 
 // -------------------- GET ALL MESSAGES (Admin use) --------------------
