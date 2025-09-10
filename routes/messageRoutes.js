@@ -62,28 +62,28 @@ router.get("/my", auth, async (req, res) => {
 
 // -------------------- SEND MESSAGE --------------------
 
-router.post("/", auth, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { receiverId, content } = req.body;
+    const { senderId, receiverId, content } = req.body;
 
-    if (!receiverId || !content) {
-      return res.status(400).json({ error: "Receiver and content required" });
+    if (!senderId || !receiverId || !content) {
+      return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Save the message
+    // Save message
     const message = await Message.create({
-      sender: req.user.id,  // logged-in user from auth
+      sender: senderId,
       receiver: receiverId,
       content,
     });
 
-    // Fetch sender details for notification text
-    const sender = await User.findById(req.user.id).select("name");
+    // Get sender info for notification text
+    const sender = await User.findById(senderId).select("name");
 
-    // Create notification for receiver
+    // Create a notification for the receiver
     await Notification.create({
-      user: receiverId,              // recipient
-      sender: req.user.id,           // sender (logged-in user)
+      user: receiverId,
+      sender: senderId,
       type: "message",
       message: `New message from ${sender?.name || "a user"}`,
     });
