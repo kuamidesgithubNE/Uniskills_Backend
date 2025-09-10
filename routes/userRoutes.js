@@ -107,49 +107,69 @@ router.post('/login', async (req, res) => {
   }
 });
 
-
-// Upload or update profile picture
-router.post('/profile/pic', auth, upload.single('profilePic'), async (req, res) => {
+// ✅ Get logged-in user's profile
+router.get("/me", auth, async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
-    const filePath = `/uploads/${req.file.filename}`;
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { profilePic: filePath },
-      { new: true }
-    ).select('-password');
-
-    res.json({
-      message: 'Profile picture updated successfully',
-      user
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Protected route
-router.get('/profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const user = await User.findById(req.user.id).select("-password"); // exclude password
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
+// PUT /users/profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const updates = req.body;
-    const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).select('-password');
+    const updates = (({ name, phone, skills, location, experience, bio, portfolio, profilePic }) => 
+      ({ name, phone, skills, location, experience, bio, portfolio, profilePic }))(req.body);
 
-    res.json({ message: 'Profile updated', user });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true });
+    res.json(user);
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// POST /users/:id/rate
+router.post('/:id/rate', auth, async (req, res) => {
+  try {
+    const { rating, review } = req.body;
+    const targetUser = await User.findById(req.params.id);
+
+    if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+    targetUser.ratings.push({
+      user: req.user.id,
+      rating,
+      review
+    });
+
+    await targetUser.save();
+    res.json({ success: true, ratings: targetUser.ratings, average: targetUser.averageRating });
+  } catch (err) {
+    console.error("Error adding rating:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET /users/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate("ratings.user", "name");
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json({
+      ...user.toObject(),
+      averageRating: user.averageRating
+    });
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

@@ -90,7 +90,6 @@ router.post("/", async (req, res) => {
     });
 
     res.json(message);
-    console.log("Message sent:", message);
   } catch (err) {
     console.error("Error sending message:", err);
     res.status(500).json({ error: "Server error" });
